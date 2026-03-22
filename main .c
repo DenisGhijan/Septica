@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "septica.h"
-
+ 
 int main() {
     srand(time(NULL));
 
