@@ -1,5 +1,5 @@
 #include "ai.h"
-
+ 
 int chooseCardAI(Card hand[], int originalRank, int trickPoints, int isLeader) {
     int hasMatch = -1, hasSeven = -1, hasTrash = -1, fallback = -1;
 
