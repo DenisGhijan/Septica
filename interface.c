@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "interface.h"
 
-// --- ANSI COLOR CODES ---
+// --- ANSI COLOR CODES --- 
 #define COLOR_RED "\033[1;31m"
 #define COLOR_BLUE "\033[94m"
 #define COLOR_RESET "\033[0m"
