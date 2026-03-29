@@ -3,7 +3,6 @@
 
 const char *RANKS[] = {"7", "8", "9", "10", "J", "Q", "K", "A"};
 const char *SUITS[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
-const char *NAMES[] = {"You", "CPU 1", "CPU 2"};
 
 int getPoints(Card c) {
     return (c.rank == 3 || c.rank == 7) ? 1 : 0;
