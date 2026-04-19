@@ -3,7 +3,7 @@
 #include "interface.h"
 
 #define COLOR_RED "\033[1;31m"
-#define COLOR_BLUE "\033[94m"
+#define COLOR_BLUE "\033[94m"  
 
 #ifdef _WIN32
     #include <conio.h>
@@ -16,7 +16,7 @@
         int ch;
         tcgetattr(STDIN_FILENO, &oldt);
         newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
+        newt.c_lflag &= ~(ICANON | ECHO); 
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
         ch = getchar();
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
@@ -28,7 +28,7 @@ void delayCPU(int milliseconds) {
 #ifdef _WIN32
     Sleep(milliseconds);
 #else
-    usleep(milliseconds * 1000);
+    usleep(milliseconds * 1000); 
 #endif
 }
 
@@ -40,15 +40,21 @@ void flushInput() {
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ICANON | ECHO);
-    newt.c_cc[VMIN] = 0;
-    newt.c_cc[VTIME] = 0;
+    newt.c_cc[VMIN] = 0;  
+    newt.c_cc[VTIME] = 0; 
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    while (getchar() != EOF);
+    
+    // Drain all pending characters
+    while (getchar() != EOF); 
+    
+    // CRITICAL FIX: Reset the EOF flag so the game can read input again!
+    clearerr(stdin); 
+    tcflush(STDIN_FILENO, TCIFLUSH); // Extra safety: flush OS level queue
+    
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 #endif
 }
 
-// Generează dinamic numele jucătorilor în funcție de mod
 const char* getPlayerName(int id, int numHumans, int numPlayers) {
     static char names[MAX_PLAYERS][20];
     int isTeamMode = (numPlayers == 4);
@@ -75,9 +81,9 @@ void promptNextPlayer(int id, int numHumans, int numPlayers) {
 
 const char* getSuitSymbol(int suitIdx) {
 #ifdef _WIN32
-    const char *suits[] = {"H", "D", "C", "S"};
+    const char *suits[] = {"H", "D", "C", "S"}; 
 #else
-    const char *suits[] = {"♥", "♦", "♣", "♠"};
+    const char *suits[] = {"♥", "♦", "♣", "♠"}; 
 #endif
     return suits[suitIdx];
 }
@@ -92,7 +98,7 @@ void printCard(Card c) {
         printf("[Gol]\n");
         return;
     }
-    printf("%s\n   +-----+\n   |%-2s   |\n   |  %s  |\n   |   %2s|\n   +-----+%s\n",
+    printf("%s\n   +-----+\n   |%-2s   |\n   |  %s  |\n   |   %2s|\n   +-----+%s\n", 
            getSuitColor(c.suit), RANKS[c.rank], getSuitSymbol(c.suit), RANKS[c.rank], COLOR_RESET);
 }
 
@@ -111,12 +117,12 @@ void printHand(Card hand[]) {
 }
 
 void displayDeadCards(Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE], int playedCount[MAX_PLAYERS], int difficulty, int numHumans, int numPlayers) {
-    if (difficulty == 1) return;
+    if (difficulty == 1) return; 
 
     int isTeamMode = (numPlayers == 4);
     printf("\n--- CĂRȚI JUCATE ANTERIOR ---\n");
 
-    if (difficulty == 2) {
+    if (difficulty == 2) { 
         printf("Echipa Ta: ");
         for (int i = 0; i < playedCount[0]; i++) {
             printf("%s[%s%s]%s ", getSuitColor(playedCards[0][i].suit), RANKS[playedCards[0][i].rank], getSuitSymbol(playedCards[0][i].suit), COLOR_RESET);
@@ -127,7 +133,7 @@ void displayDeadCards(Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE], int playedCo
             }
         }
         printf("\n");
-    } else if (difficulty == 3) {
+    } else if (difficulty == 3) { 
         if (isTeamMode) {
             printf("Echipa 1: ");
             for (int p = 0; p <= 2; p += 2) {
@@ -164,19 +170,19 @@ void clearScreen() {
 }
 
 int readSingleDigit() {
-    flushInput();
+    flushInput(); 
     while (1) {
         int ch = _getch();
         if (ch >= '0' && ch <= '9') {
             int val = ch - '0';
-            printf("%d\n", val);
+            printf("%d\n", val); 
             return val;
         }
     }
 }
 
 void waitForAnyKey() {
-    flushInput();
+    flushInput(); 
     printf("\nApasă orice tastă pentru a continua...");
     _getch();
     printf("\n");
