@@ -22,3 +22,4 @@ clean:
 	rm -f ./path/file-f	$(OBJS)	$(TARGET)	$(TARGET).exe
 
 .PHONY: all clean
+ 
