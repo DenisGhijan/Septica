@@ -26,7 +26,7 @@ void printScoreHeader(int points[], int numHumans, int numPlayers, int actualDec
     printf("====================================================\n");
 }
 
-// Funcție centralizată care desenează tot ecranul, cu corecturi gramaticale pentru "Tu"
+// Funcție centralizată care desenează tot ecranul
 void drawGameState(int points[], int numHumans, int numPlayers, int actualDeckSize, int top,
                    Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE], int playedCount[MAX_PLAYERS],
                    int difficulty, Card tableCards[], int tablePlayers[], int tableCount) {
@@ -37,7 +37,6 @@ void drawGameState(int points[], int numHumans, int numPlayers, int actualDeckSi
     if (tableCount > 0) {
         printf("\n--- MASA CURENTĂ ---\n");
         for(int i = 0; i < tableCount; i++) {
-            // Corectură gramaticală: "Tu ai jucat" vs "CPU a jucat"
             if (numHumans == 1 && tablePlayers[i] == 0) {
                 printf("%-10s ai jucat: %s[%s%s]%s\n", 
                     "Tu", 
@@ -379,7 +378,6 @@ int main() {
         drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
         printf("\n====================================================\n");
         
-        // Corectură gramaticală pentru sfârșitul mâinii (trick)
         if (numHumans == 1 && currentWinner == 0) {
             printf("*** Tu câștigi mâna și iei %d puncte! ***\n", trickPoints);
         } else {
@@ -446,7 +444,6 @@ int main() {
         if (winnersCount > 1) {
             printf("\nEste egalitate pe primul loc cu %d puncte!\n", maxScore);
         } else {
-            // Corectură gramaticală pentru sfârșitul jocului
             if (numHumans == 1 && lastWinnerId == 0) {
                 printf("\nFelicitări, tu ai câștigat!\n");
             } else {
