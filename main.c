@@ -9,13 +9,28 @@
 #include <windows.h>
 #endif
 
-// Funcție utilitară pentru redesenarea antetului de scor
-void printScoreHeader(int points[], int numHumans, int numPlayers, int actualDeckSize, int top) {
+// Antetul de scor actualizat pentru a afișa și scorul general al meciului
+void printScoreHeader(int points[], int matchPoints[], int numHumans, int numPlayers, int actualDeckSize, int top, int targetScore, int roundNum) {
     printf("====================================================\n");
+
+    if (targetScore > 0) {
+        printf("       --- MECI (Până la %d) | RUNDA %d ---\n", targetScore, roundNum);
+        printf("----------------------------------------------------\n");
+    }
+
     if (numPlayers == 4) {
-        printf("   SCOR -> Echipa 1: %d | Echipa 2: %d\n", points[0] + points[2], points[1] + points[3]);
+        if (targetScore > 0) printf("   SCOR TOTAL    -> Echipa 1: %d | Echipa 2: %d\n", matchPoints[0] + matchPoints[2], matchPoints[1] + matchPoints[3]);
+        printf("   RUNDA CURENTĂ -> Echipa 1: %d | Echipa 2: %d\n", points[0] + points[2], points[1] + points[3]);
     } else {
-        printf("   SCOR -> ");
+        if (targetScore > 0) {
+            printf("   SCOR TOTAL    -> ");
+            for(int i = 0; i < numPlayers; i++) {
+                printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), matchPoints[i]);
+                if (i < numPlayers - 1) printf("| ");
+            }
+            printf("\n");
+        }
+        printf("   RUNDA CURENTĂ -> ");
         for(int i = 0; i < numPlayers; i++) {
             printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), points[i]);
             if (i < numPlayers - 1) printf("| ");
@@ -26,26 +41,25 @@ void printScoreHeader(int points[], int numHumans, int numPlayers, int actualDec
     printf("====================================================\n");
 }
 
-// Funcție centralizată care desenează tot ecranul
-void drawGameState(int points[], int numHumans, int numPlayers, int actualDeckSize, int top,
+void drawGameState(int points[], int matchPoints[], int numHumans, int numPlayers, int actualDeckSize, int top,
                    Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE], int playedCount[MAX_PLAYERS],
-                   int difficulty, Card tableCards[], int tablePlayers[], int tableCount) {
+                   int difficulty, Card tableCards[], int tablePlayers[], int tableCount, int targetScore, int roundNum) {
     clearScreen();
-    printScoreHeader(points, numHumans, numPlayers, actualDeckSize, top);
+    printScoreHeader(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, targetScore, roundNum);
     displayDeadCards(playedCards, playedCount, difficulty, numHumans, numPlayers);
-    
+
     if (tableCount > 0) {
         printf("\n--- MASA CURENTĂ ---\n");
         for(int i = 0; i < tableCount; i++) {
             if (numHumans == 1 && tablePlayers[i] == 0) {
-                printf("%-10s ai jucat: %s[%s%s]%s\n", 
-                    "Tu", 
-                    getSuitColor(tableCards[i].suit), RANKS[tableCards[i].rank], 
+                printf("%-10s ai jucat: %s[%s%s]%s\n",
+                    "Tu",
+                    getSuitColor(tableCards[i].suit), RANKS[tableCards[i].rank],
                     getSuitSymbol(tableCards[i].suit), COLOR_RESET);
             } else {
-                printf("%-10s a jucat: %s[%s%s]%s\n", 
-                    getPlayerName(tablePlayers[i], numHumans, numPlayers), 
-                    getSuitColor(tableCards[i].suit), RANKS[tableCards[i].rank], 
+                printf("%-10s a jucat: %s[%s%s]%s\n",
+                    getPlayerName(tablePlayers[i], numHumans, numPlayers),
+                    getSuitColor(tableCards[i].suit), RANKS[tableCards[i].rank],
                     getSuitSymbol(tableCards[i].suit), COLOR_RESET);
             }
         }
@@ -55,15 +69,16 @@ void drawGameState(int points[], int numHumans, int numPlayers, int actualDeckSi
 
 int main() {
 #ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8); 
+    SetConsoleOutputCP(CP_UTF8);
 #endif
 
     srand(time(NULL));
-    
+
     int numPlayers = 3;
     int numHumans = 1;
     int difficulty = 1;
-    
+    int targetScore = 0;
+
     // --- MAIN MENU LOOP ---
     while (1) {
         clearScreen();
@@ -75,9 +90,9 @@ int main() {
         printf("  3. Cum se joacă\n");
         printf("  4. Ieșire\n\n");
         printf("Alege o opțiune: ");
-        
+
         int mode = readSingleDigit();
-        
+
         if (mode == 3) {
             displayRules();
             continue;
@@ -85,7 +100,7 @@ int main() {
             printf("Îți mulțumim pentru joc!\n");
             return 0;
         } else if (mode == 1 || mode == 2) {
-            
+
             clearScreen();
             printf("Alege tipul de meci:\n");
             printf("  2. 2 Jucători (1v1)\n");
@@ -115,6 +130,28 @@ int main() {
         }
     }
 
+    // --- MATCH LENGTH MENU ---
+    while (1) {
+        clearScreen();
+        printf("====================================================\n");
+        printf("               LUNGIMEA MECIULUI                    \n");
+        printf("====================================================\n\n");
+        printf("  1. O singură rundă (Clasic)\n");
+        printf("  2. Meci până la 16 puncte\n");
+        printf("  3. Meci până la 24 puncte (Recomandat)\n");
+        printf("  4. Meci până la 32 puncte\n\n");
+        printf("Alege o opțiune: ");
+
+        int lenChoice = readSingleDigit();
+        if (lenChoice == 1) { targetScore = 0; break; }
+        else if (lenChoice == 2) { targetScore = 16; break; }
+        else if (lenChoice == 3) { targetScore = 24; break; }
+        else if (lenChoice == 4) { targetScore = 32; break; }
+
+        printf("Alegere invalidă.");
+        waitForAnyKey();
+    }
+
     // --- DIFFICULTY MENU ---
     while (1) {
         clearScreen();
@@ -125,332 +162,386 @@ int main() {
         printf("  2. Ușor        (Arată cărțile jucate de echipa ta)\n");
         printf("  3. Foarte Ușor (Arată TOATE cărțile jucate)\n\n");
         printf("Alege o opțiune: ");
-        
+
         difficulty = readSingleDigit();
         if (difficulty >= 1 && difficulty <= 3) break;
-        
+
         printf("Alegere invalidă.");
         waitForAnyKey();
     }
 
-    // --- INITIALIZE GAME ---
-    Card deck[MAX_DECK_SIZE];
-    int top = 0;
+    // Variabile globale pentru întregul meci
+    int turn = 0;
+    int matchDone = 0;
+    int matchPoints[MAX_PLAYERS] = {0, 0, 0, 0};
+    int roundNum = 1;
 
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 4; j++) { 
-            if (numPlayers == 3 && i == 1 && (j == 2 || j == 3)) continue;
-            deck[top++] = (Card){i, j}; 
+    // ================= BUCLA PRINCIPALĂ A MECIULUI =================
+    while (!matchDone) {
+        Card deck[MAX_DECK_SIZE];
+        int top = 0;
+
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (numPlayers == 3 && i == 1 && (j == 2 || j == 3)) continue;
+                deck[top++] = (Card){i, j};
+            }
         }
-    }
-    
-    int actualDeckSize = top; 
-    shuffle(deck, actualDeckSize);
-    top = 0;
 
-    Card hands[MAX_PLAYERS][HAND_SIZE];
-    int points[MAX_PLAYERS] = {0, 0, 0, 0};
-    Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE];
-    int playedCount[MAX_PLAYERS] = {0};
+        int actualDeckSize = top;
+        shuffle(deck, actualDeckSize);
+        top = 0;
 
-    for (int i = 0; i < HAND_SIZE; i++) {
-        for (int p = 0; p < numPlayers; p++) hands[p][i] = deck[top++];
-    }
+        Card hands[MAX_PLAYERS][HAND_SIZE];
+        int points[MAX_PLAYERS] = {0, 0, 0, 0}; // Punctele strict pentru Runda Curentă
+        Card playedCards[MAX_PLAYERS][MAX_DECK_SIZE];
+        int playedCount[MAX_PLAYERS] = {0};
 
-    int turn = 0; 
-    int gameDone = 0; 
-    int lastHumanViewer = -1; 
+        for (int i = 0; i < HAND_SIZE; i++) {
+            for (int p = 0; p < numPlayers; p++) hands[p][i] = deck[top++];
+        }
 
-    while (!gameDone) {
-        int trickPoints = 0, originalRank = -1, leader = turn, currentWinner = leader, trickActive = 1, isFirstPass = 1; 
-        
-        Card tableCards[MAX_DECK_SIZE];
-        int tablePlayers[MAX_DECK_SIZE];
-        int tableCount = 0;
+        int gameDone = 0;
+        int lastHumanViewer = -1;
 
-        while (trickActive) {
-            int leaderHasCards = 0;
-            for(int i = 0; i < HAND_SIZE; i++) if(hands[leader][i].rank != -1) leaderHasCards = 1;
+        // ================= BUCLA RUNDEI CURENTE =================
+        while (!gameDone) {
+            int trickPoints = 0, originalRank = -1, leader = turn, currentWinner = leader, trickActive = 1, isFirstPass = 1;
 
-            if (!leaderHasCards) break; 
+            Card tableCards[MAX_DECK_SIZE];
+            int tablePlayers[MAX_DECK_SIZE];
+            int tableCount = 0;
 
-            // ================= Faza 1: LIDERUL ÎNCEPE =================
-            if (isFirstPass) {
-                if (leader < numHumans) { 
-                    if (numHumans > 1 && lastHumanViewer != leader) {
-                        promptNextPlayer(leader, numHumans, numPlayers);
-                        lastHumanViewer = leader;
-                    }
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    
-                    printf("\n%s, e rândul tău să începi.\nMâna ta: ", getPlayerName(leader, numHumans, numPlayers));
-                    printHand(hands[leader]);
-                    
-                    while(1) {
-                        printf("\nAlege o carte (1-4): ");
-                        int cardChoice = readSingleDigit();
-                        if (cardChoice >= 1 && cardChoice <= 4 && hands[leader][cardChoice-1].rank != -1) {
-                            Card playedCard = hands[leader][cardChoice-1];
-                            hands[leader][cardChoice-1].rank = -1;
-                            
-                            playedCards[leader][playedCount[leader]++] = playedCard; 
-                            tableCards[tableCount] = playedCard;
-                            tablePlayers[tableCount++] = leader;
-                            
-                            trickPoints += getPoints(playedCard);
-                            originalRank = playedCard.rank;
-                            currentWinner = leader;
-                            
-                            drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                            printf("\nAi jucat:\n"); printCard(playedCard);
-                            delayCPU(800); 
-                            break;
+            while (trickActive) {
+                int leaderHasCards = 0;
+                for(int i = 0; i < HAND_SIZE; i++) if(hands[leader][i].rank != -1) leaderHasCards = 1;
+
+                if (!leaderHasCards) break;
+
+                // Faza 1: LIDERUL ÎNCEPE
+                if (isFirstPass) {
+                    if (leader < numHumans) {
+                        if (numHumans > 1 && lastHumanViewer != leader) {
+                            promptNextPlayer(leader, numHumans, numPlayers);
+                            lastHumanViewer = leader;
                         }
-                        printf("Alegere invalidă sau loc gol.\n");
-                    }
-                } else { 
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    printf("\n%s se gândește...\n", getPlayerName(leader, numHumans, numPlayers));
-                    delayCPU(1000); 
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
 
-                    int cardChoice = chooseCardAI(hands[leader], -1, trickPoints, 1, currentWinner, leader, numPlayers);
-                    Card playedCard = hands[leader][cardChoice];
-                    hands[leader][cardChoice].rank = -1;
-                    
-                    playedCards[leader][playedCount[leader]++] = playedCard; 
-                    tableCards[tableCount] = playedCard;
-                    tablePlayers[tableCount++] = leader;
-                    
-                    trickPoints += getPoints(playedCard);
-                    originalRank = playedCard.rank;
-                    currentWinner = leader;
+                        printf("\n%s, e rândul tău să începi.\nMâna ta: ", getPlayerName(leader, numHumans, numPlayers));
+                        printHand(hands[leader]);
 
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    printf("\n%s a jucat:\n", getPlayerName(leader, numHumans, numPlayers)); printCard(playedCard);
-                    delayCPU(1000);
-                }
-            } 
-            // ================= Faza 2: LIDERUL RĂSPUNDE LA O TĂIETURĂ =================
-            else {
-                if (leader < numHumans) {
-                    if (numHumans > 1 && lastHumanViewer != leader) {
-                        promptNextPlayer(leader, numHumans, numPlayers);
-                        lastHumanViewer = leader;
-                    }
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
+                        while(1) {
+                            printf("\nAlege o carte (1-4): ");
+                            int cardChoice = readSingleDigit();
+                            if (cardChoice >= 1 && cardChoice <= 4 && hands[leader][cardChoice-1].rank != -1) {
+                                Card playedCard = hands[leader][cardChoice-1];
+                                hands[leader][cardChoice-1].rank = -1;
 
-                    // Corectură gramaticală pentru "Tu ai tăiat"
-                    if (numHumans == 1 && currentWinner == 0) {
-                        printf("\n>>> Tu ai tăiat! <<<\n");
-                    } else {
-                        printf("\n>>> %s a tăiat! <<<\n", getPlayerName(currentWinner, numHumans, numPlayers));
-                    }
-
-                    printf("Mâna ta: "); printHand(hands[leader]);
-                    printf("\nAlege o carte pentru a răspunde (1-4) sau 0 pentru a renunța: ");
-                    while(1) {
-                        int replyChoice = readSingleDigit();
-                        if (replyChoice == 0) {
-                            trickActive = 0; break; 
-                        } else if (replyChoice >= 1 && replyChoice <= 4 && hands[leader][replyChoice-1].rank != -1) {
-                            Card replyCard = hands[leader][replyChoice-1];
-                            if(isCut(replyCard, originalRank, numPlayers)) {
-                                hands[leader][replyChoice-1].rank = -1;
-                                
-                                playedCards[leader][playedCount[leader]++] = replyCard; 
-                                tableCards[tableCount] = replyCard;
+                                playedCards[leader][playedCount[leader]++] = playedCard;
+                                tableCards[tableCount] = playedCard;
                                 tablePlayers[tableCount++] = leader;
-                                
-                                trickPoints += getPoints(replyCard);
-                                currentWinner = leader; 
 
-                                drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                                printf("\nAi răspuns cu:\n"); printCard(replyCard);
+                                trickPoints += getPoints(playedCard);
+                                originalRank = playedCard.rank;
+                                currentWinner = leader;
+
+                                drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                                printf("\nAi jucat:\n"); printCard(playedCard);
                                 delayCPU(800);
                                 break;
-                            } else printf("Această carte nu taie! Încearcă alta sau apasă 0:\n");
-                        } else printf("Alegere invalidă sau loc gol. Mai încearcă:\n");
-                    }
-                } else { 
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    printf("\n%s se gândește la un răspuns...\n", getPlayerName(leader, numHumans, numPlayers));
-                    delayCPU(1000);
-
-                    int replyChoice = -1;
-                    for (int i = 0; i < HAND_SIZE; i++) {
-                        if (hands[leader][i].rank != -1 && isCut(hands[leader][i], originalRank, numPlayers)) {
-                            int isPartnerWinning = (numPlayers == 4 && (currentWinner % 2 == leader % 2));
-                            int isTrump = (hands[leader][i].rank == 0 || (numPlayers == 3 && hands[leader][i].rank == 1));
-                            
-                            if (isTrump && (trickPoints == 0 || isPartnerWinning)) continue; 
-                            replyChoice = i; break;
+                            }
+                            printf("Alegere invalidă sau loc gol.\n");
                         }
-                    }
+                    } else {
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                        printf("\n%s se gândește...\n", getPlayerName(leader, numHumans, numPlayers));
+                        delayCPU(1000);
 
-                    if (replyChoice != -1) {
-                        Card replyCard = hands[leader][replyChoice];
-                        hands[leader][replyChoice].rank = -1;
-                        
-                        playedCards[leader][playedCount[leader]++] = replyCard; 
-                        tableCards[tableCount] = replyCard;
+                        int cardChoice = chooseCardAI(hands[leader], -1, trickPoints, 1, currentWinner, leader, numPlayers);
+                        Card playedCard = hands[leader][cardChoice];
+                        hands[leader][cardChoice].rank = -1;
+
+                        playedCards[leader][playedCount[leader]++] = playedCard;
+                        tableCards[tableCount] = playedCard;
                         tablePlayers[tableCount++] = leader;
 
-                        trickPoints += getPoints(replyCard);
+                        trickPoints += getPoints(playedCard);
+                        originalRank = playedCard.rank;
                         currentWinner = leader;
 
-                        drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                        printf("\n%s RĂSPUNDE cu:\n", getPlayerName(leader, numHumans, numPlayers)); printCard(replyCard);
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                        printf("\n%s a jucat:\n", getPlayerName(leader, numHumans, numPlayers)); printCard(playedCard);
                         delayCPU(1000);
-                    } else {
-                        printf("\n%s renunță.\n", getPlayerName(leader, numHumans, numPlayers));
-                        delayCPU(800);
-                        trickActive = 0;
                     }
                 }
-            }
-
-            if (!trickActive) break; 
-
-            // ================= Faza 3: CEILALȚI JUCĂTORI RĂSPUND =================
-            for (int offset = 1; offset < numPlayers; offset++) {
-                int p = (leader + offset) % numPlayers;
-                
-                int hasCards = 0;
-                for (int i = 0; i < HAND_SIZE; i++) if (hands[p][i].rank != -1) hasCards = 1;
-                if (!hasCards) continue; 
-
-                if (p < numHumans) { 
-                    if (numHumans > 1 && lastHumanViewer != p) {
-                        promptNextPlayer(p, numHumans, numPlayers);
-                        lastHumanViewer = p;
-                    }
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-
-                    printf("\n%s, e rândul tău.\nMâna ta: ", getPlayerName(p, numHumans, numPlayers));
-                    printHand(hands[p]);
-                    while(1) {
-                        printf("\nAlege o carte (1-4): ");
-                        int cardChoice = readSingleDigit();
-                        if (cardChoice >= 1 && cardChoice <= 4 && hands[p][cardChoice-1].rank != -1) {
-                            Card playedCard = hands[p][cardChoice-1];
-                            hands[p][cardChoice-1].rank = -1;
-                            
-                            playedCards[p][playedCount[p]++] = playedCard; 
-                            tableCards[tableCount] = playedCard;
-                            tablePlayers[tableCount++] = p;
-
-                            trickPoints += getPoints(playedCard);
-                            if (isCut(playedCard, originalRank, numPlayers)) currentWinner = p;
-                            
-                            drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                            printf("\nAi jucat:\n"); printCard(playedCard);
-                            delayCPU(800);
-                            break;
+                // Faza 2: LIDERUL RĂSPUNDE LA O TĂIETURĂ
+                else {
+                    if (leader < numHumans) {
+                        if (numHumans > 1 && lastHumanViewer != leader) {
+                            promptNextPlayer(leader, numHumans, numPlayers);
+                            lastHumanViewer = leader;
                         }
-                        printf("Alegere invalidă sau loc gol.\n");
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+
+                        if (numHumans == 1 && currentWinner == 0) {
+                            printf("\n>>> Tu ai tăiat! <<<\n");
+                        } else {
+                            printf("\n>>> %s a tăiat! <<<\n", getPlayerName(currentWinner, numHumans, numPlayers));
+                        }
+
+                        printf("Mâna ta: "); printHand(hands[leader]);
+                        printf("\nAlege o carte pentru a răspunde (1-4) sau 0 pentru a renunța: ");
+                        while(1) {
+                            int replyChoice = readSingleDigit();
+                            if (replyChoice == 0) {
+                                trickActive = 0; break;
+                            } else if (replyChoice >= 1 && replyChoice <= 4 && hands[leader][replyChoice-1].rank != -1) {
+                                Card replyCard = hands[leader][replyChoice-1];
+                                if(isCut(replyCard, originalRank, numPlayers)) {
+                                    hands[leader][replyChoice-1].rank = -1;
+
+                                    playedCards[leader][playedCount[leader]++] = replyCard;
+                                    tableCards[tableCount] = replyCard;
+                                    tablePlayers[tableCount++] = leader;
+
+                                    trickPoints += getPoints(replyCard);
+                                    currentWinner = leader;
+
+                                    drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                                    printf("\nAi răspuns cu:\n"); printCard(replyCard);
+                                    delayCPU(800);
+                                    break;
+                                } else printf("Această carte nu taie! Încearcă alta sau apasă 0:\n");
+                            } else printf("Alegere invalidă sau loc gol. Mai încearcă:\n");
+                        }
+                    } else {
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                        printf("\n%s se gândește la un răspuns...\n", getPlayerName(leader, numHumans, numPlayers));
+                        delayCPU(1000);
+
+                        int replyChoice = -1;
+                        for (int i = 0; i < HAND_SIZE; i++) {
+                            if (hands[leader][i].rank != -1 && isCut(hands[leader][i], originalRank, numPlayers)) {
+                                int isPartnerWinning = (numPlayers == 4 && (currentWinner % 2 == leader % 2));
+                                int isTrump = (hands[leader][i].rank == 0 || (numPlayers == 3 && hands[leader][i].rank == 1));
+
+                                if (isTrump && (trickPoints == 0 || isPartnerWinning)) continue;
+                                replyChoice = i; break;
+                            }
+                        }
+
+                        if (replyChoice != -1) {
+                            Card replyCard = hands[leader][replyChoice];
+                            hands[leader][replyChoice].rank = -1;
+
+                            playedCards[leader][playedCount[leader]++] = replyCard;
+                            tableCards[tableCount] = replyCard;
+                            tablePlayers[tableCount++] = leader;
+
+                            trickPoints += getPoints(replyCard);
+                            currentWinner = leader;
+
+                            drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                            printf("\n%s RĂSPUNDE cu:\n", getPlayerName(leader, numHumans, numPlayers)); printCard(replyCard);
+                            delayCPU(1000);
+                        } else {
+                            printf("\n%s renunță.\n", getPlayerName(leader, numHumans, numPlayers));
+                            delayCPU(800);
+                            trickActive = 0;
+                        }
                     }
-                } else { 
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    printf("\n%s se gândește...\n", getPlayerName(p, numHumans, numPlayers));
-                    delayCPU(1000); 
+                }
 
-                    int cardChoice = chooseCardAI(hands[p], originalRank, trickPoints, 0, currentWinner, p, numPlayers);
-                    Card playedCard = hands[p][cardChoice];
-                    hands[p][cardChoice].rank = -1;
-                    
-                    playedCards[p][playedCount[p]++] = playedCard; 
-                    tableCards[tableCount] = playedCard;
-                    tablePlayers[tableCount++] = p;
+                if (!trickActive) break;
 
-                    trickPoints += getPoints(playedCard);
-                    if (isCut(playedCard, originalRank, numPlayers)) currentWinner = p;
+                // Faza 3: CEILALȚI JUCĂTORI RĂSPUND
+                for (int offset = 1; offset < numPlayers; offset++) {
+                    int p = (leader + offset) % numPlayers;
 
-                    drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
-                    printf("\n%s a jucat:\n", getPlayerName(p, numHumans, numPlayers)); printCard(playedCard);
-                    delayCPU(1000);
+                    int hasCards = 0;
+                    for (int i = 0; i < HAND_SIZE; i++) if (hands[p][i].rank != -1) hasCards = 1;
+                    if (!hasCards) continue;
+
+                    if (p < numHumans) {
+                        if (numHumans > 1 && lastHumanViewer != p) {
+                            promptNextPlayer(p, numHumans, numPlayers);
+                            lastHumanViewer = p;
+                        }
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+
+                        printf("\n%s, e rândul tău.\nMâna ta: ", getPlayerName(p, numHumans, numPlayers));
+                        printHand(hands[p]);
+                        while(1) {
+                            printf("\nAlege o carte (1-4): ");
+                            int cardChoice = readSingleDigit();
+                            if (cardChoice >= 1 && cardChoice <= 4 && hands[p][cardChoice-1].rank != -1) {
+                                Card playedCard = hands[p][cardChoice-1];
+                                hands[p][cardChoice-1].rank = -1;
+
+                                playedCards[p][playedCount[p]++] = playedCard;
+                                tableCards[tableCount] = playedCard;
+                                tablePlayers[tableCount++] = p;
+
+                                trickPoints += getPoints(playedCard);
+                                if (isCut(playedCard, originalRank, numPlayers)) currentWinner = p;
+
+                                drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                                printf("\nAi jucat:\n"); printCard(playedCard);
+                                delayCPU(800);
+                                break;
+                            }
+                            printf("Alegere invalidă sau loc gol.\n");
+                        }
+                    } else {
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                        printf("\n%s se gândește...\n", getPlayerName(p, numHumans, numPlayers));
+                        delayCPU(1000);
+
+                        int cardChoice = chooseCardAI(hands[p], originalRank, trickPoints, 0, currentWinner, p, numPlayers);
+                        Card playedCard = hands[p][cardChoice];
+                        hands[p][cardChoice].rank = -1;
+
+                        playedCards[p][playedCount[p]++] = playedCard;
+                        tableCards[tableCount] = playedCard;
+                        tablePlayers[tableCount++] = p;
+
+                        trickPoints += getPoints(playedCard);
+                        if (isCut(playedCard, originalRank, numPlayers)) currentWinner = p;
+
+                        drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+                        printf("\n%s a jucat:\n", getPlayerName(p, numHumans, numPlayers)); printCard(playedCard);
+                        delayCPU(1000);
+                    }
+                }
+
+                if (currentWinner == leader) trickActive = 0;
+                isFirstPass = 0;
+            }
+
+            drawGameState(points, matchPoints, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount, targetScore, roundNum);
+            printf("\n====================================================\n");
+            if (numHumans == 1 && currentWinner == 0) {
+                printf("*** Tu câștigi mâna și iei %d puncte! ***\n", trickPoints);
+            } else {
+                printf("*** %s câștigă mâna și ia %d puncte! ***\n", getPlayerName(currentWinner, numHumans, numPlayers), trickPoints);
+            }
+            printf("====================================================\n");
+
+            points[currentWinner] += trickPoints;
+
+            // Extragere cărți noi
+            for (int offset = 0; offset < numPlayers; offset++) {
+                int p = (currentWinner + offset) % numPlayers;
+                for (int i = 0; i < HAND_SIZE; i++) {
+                    if (hands[p][i].rank == -1 && top < actualDeckSize) {
+                        hands[p][i] = deck[top++];
+                    }
                 }
             }
 
-            if (currentWinner == leader) trickActive = 0;
-            isFirstPass = 0; 
+            turn = currentWinner; // Câștigătorul va începe următoarea mână
+
+            // Verificăm dacă runda s-a terminat
+            gameDone = 1;
+            for(int p = 0; p < numPlayers; p++) {
+                for(int i = 0; i < HAND_SIZE; i++) {
+                    if(hands[p][i].rank != -1) gameDone = 0;
+                }
+            }
+
+            waitForAnyKey();
         }
 
-        drawGameState(points, numHumans, numPlayers, actualDeckSize, top, playedCards, playedCount, difficulty, tableCards, tablePlayers, tableCount);
+        // ================= SFÂRȘIT DE RUNDĂ =================
+        for(int i = 0; i < numPlayers; i++) matchPoints[i] += points[i];
+
+        clearScreen();
         printf("\n====================================================\n");
-        
-        if (numHumans == 1 && currentWinner == 0) {
-            printf("*** Tu câștigi mâna și iei %d puncte! ***\n", trickPoints);
-        } else {
-            printf("*** %s câștigă mâna și ia %d puncte! ***\n", getPlayerName(currentWinner, numHumans, numPlayers), trickPoints);
-        }
-        
+        printf("              === RUNDA %d S-A TERMINAT ===            \n", roundNum);
         printf("====================================================\n");
-        points[currentWinner] += trickPoints;
 
-        for (int offset = 0; offset < numPlayers; offset++) {
-            int p = (currentWinner + offset) % numPlayers;
-            for (int i = 0; i < HAND_SIZE; i++) {
-                if (hands[p][i].rank == -1 && top < actualDeckSize) {
-                    hands[p][i] = deck[top++];
+        if (numPlayers == 4) {
+            printf("Puncte Runda Curentă -> Echipa 1: %d | Echipa 2: %d\n", points[0] + points[2], points[1] + points[3]);
+            printf("SCOR TOTAL MECI      -> Echipa 1: %d | Echipa 2: %d\n", matchPoints[0] + matchPoints[2], matchPoints[1] + matchPoints[3]);
+        } else {
+            printf("Puncte Runda Curentă -> ");
+            for (int i = 0; i < numPlayers; i++) {
+                printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), points[i]);
+                if (i < numPlayers - 1) printf("| ");
+            }
+            printf("\nSCOR TOTAL MECI      -> ");
+            for (int i = 0; i < numPlayers; i++) {
+                printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), matchPoints[i]);
+                if (i < numPlayers - 1) printf("| ");
+            }
+            printf("\n");
+        }
+
+        // Verificăm dacă cineva a atins Target Score
+        if (targetScore == 0) {
+            matchDone = 1; // Mod o singură rundă
+        } else {
+            if (numPlayers == 4) {
+                if (matchPoints[0] + matchPoints[2] >= targetScore || matchPoints[1] + matchPoints[3] >= targetScore) matchDone = 1;
+            } else {
+                for (int i = 0; i < numPlayers; i++) {
+                    if (matchPoints[i] >= targetScore) matchDone = 1;
                 }
             }
         }
-        
-        turn = currentWinner; 
-        
-        gameDone = 1;
-        for(int p = 0; p < numPlayers; p++) {
-            for(int i = 0; i < HAND_SIZE; i++) {
-                if(hands[p][i].rank != -1) gameDone = 0;
-            }
-        }
 
-        waitForAnyKey();
+        if (!matchDone) {
+            printf("\nNimeni nu a atins încă %d de puncte.", targetScore);
+            printf("\nPregătiți-vă pentru runda %d...\n", ++roundNum);
+            waitForAnyKey();
+        }
     }
 
+    // ================= SFÂRȘIT DE MECI (GRAND FINALE) =================
     clearScreen();
     printf("\n====================================================\n");
-    printf("              === JOCUL S-A TERMINAT ===            \n");
+    printf("              === MECIUL S-A TERMINAT ===            \n");
     printf("====================================================\n");
-    
+
     if (numPlayers == 4) {
-        int finalTeamUs = points[0] + points[2];
-        int finalTeamThem = points[1] + points[3];
+        int finalTeamUs = matchPoints[0] + matchPoints[2];
+        int finalTeamThem = matchPoints[1] + matchPoints[3];
         printf("Scor Final -> Echipa 1: %d | Echipa 2: %d\n", finalTeamUs, finalTeamThem);
-        
-        if (finalTeamUs > finalTeamThem) printf("\nFelicitări! Echipa 1 a câștigat!\n");
-        else if (finalTeamUs < finalTeamThem) printf("\nEchipa 2 a fost mai bună de data aceasta.\n");
-        else printf("\nEste o remiză perfectă (4 la 4)!\n");
+
+        if (finalTeamUs > finalTeamThem) printf("\nFelicitări CAMPIONILOR! Echipa 1 a câștigat meciul!\n");
+        else if (finalTeamUs < finalTeamThem) printf("\nEchipa 2 a fost mai bună și a câștigat meciul.\n");
+        else printf("\nMeciul s-a terminat cu o remiză rară!\n");
     } else {
         printf("Scor Final -> ");
         for (int i = 0; i < numPlayers; i++) {
-            printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), points[i]);
+            printf("%s: %d ", getPlayerName(i, numHumans, numPlayers), matchPoints[i]);
             if (i < numPlayers - 1) printf("| ");
         }
         printf("\n");
-        
-        int maxScore = points[0];
-        for(int i = 1; i < numPlayers; i++) if(points[i] > maxScore) maxScore = points[i];
+
+        int maxScore = matchPoints[0];
+        for(int i = 1; i < numPlayers; i++) if(matchPoints[i] > maxScore) maxScore = matchPoints[i];
 
         int winnersCount = 0;
         int lastWinnerId = -1;
         for (int i = 0; i < numPlayers; i++) {
-            if (points[i] == maxScore) {
+            if (matchPoints[i] == maxScore) {
                 winnersCount++;
                 lastWinnerId = i;
             }
         }
 
         if (winnersCount > 1) {
-            printf("\nEste egalitate pe primul loc cu %d puncte!\n", maxScore);
+            printf("\nMeciul s-a terminat la egalitate cu %d puncte!\n", maxScore);
         } else {
             if (numHumans == 1 && lastWinnerId == 0) {
-                printf("\nFelicitări, tu ai câștigat!\n");
+                printf("\nFelicitări CAMPIONULUI, tu ai câștigat meciul!\n");
             } else {
-                printf("\nFelicitări, %s a câștigat!\n", getPlayerName(lastWinnerId, numHumans, numPlayers));
+                printf("\nFelicitări CAMPIONULUI, %s a câștigat meciul!\n", getPlayerName(lastWinnerId, numHumans, numPlayers));
             }
         }
     }
 
+    waitForAnyKey();
     return 0;
 }
